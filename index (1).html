@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIGI-CHRON 8000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #0d0d0d;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    overflow: hidden;
+  }
+
+  .clock-shell {
+    background: #141414;
+    border: 1.5px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 16px 20px 14px;
+    width: 98vw;
+    max-width: 780px;
+    position: relative;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .brand {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: #333;
+    text-transform: uppercase;
+  }
+
+  .led-row {
+    display: flex;
+    gap: 5px;
+  }
+
+  .led {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #001a00;
+  }
+
+  .led.on {
+    background: #00e000;
+    box-shadow: 0 0 5px #00e000;
+  }
+
+  .display-panel {
+    background: #070f07;
+    border: 1px solid #1a3a1a;
+    border-radius: 6px;
+    padding: 14px 24px 12px;
+    margin-bottom: 12px;
+  }
+
+  .time-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0;
+    line-height: 1;
+  }
+
+  .seg-time {
+    font-size: clamp(64px, 13vw, 108px);
+    line-height: 1;
+    letter-spacing: -1px;
+    color: #00e800;
+    text-shadow: 0 0 10px #00e000, 0 0 3px #00ff00;
+  }
+
+  .colon {
+    font-size: clamp(64px, 13vw, 108px);
+    line-height: 1;
+    color: #00e800;
+    text-shadow: 0 0 10px #00e000;
+    margin: 0 3px;
+    animation: blink 1s step-end infinite;
+  }
+
+  .colon2 { animation-delay: 0.5s; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.08; }
+  }
+
+  .ampm {
+    font-size: clamp(18px, 3.2vw, 28px);
+    color: #00e000;
+    text-shadow: 0 0 6px #00e000;
+    margin-left: 10px;
+    align-self: flex-end;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+
+  .date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #162816;
+  }
+
+  .day-text {
+    font-size: clamp(16px, 3vw, 24px);
+    color: #00aa00;
+    text-shadow: 0 0 5px #009900;
+    letter-spacing: 3px;
+  }
+
+  .date-text {
+    font-size: clamp(16px, 3vw, 24px);
+    color: #00aa00;
+    text-shadow: 0 0 5px #009900;
+    letter-spacing: 3px;
+  }
+
+  .moon-panel {
+    background: #070f07;
+    border: 1px solid #1a3a1a;
+    border-radius: 6px;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .moon-icon {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  .moon-info { flex: 1; }
+
+  .moon-phase-name {
+    font-size: clamp(14px, 2.4vw, 20px);
+    color: #00cc00;
+    text-shadow: 0 0 5px #00bb00;
+    letter-spacing: 3px;
+    margin-bottom: 5px;
+  }
+
+  .moon-detail {
+    font-size: clamp(11px, 1.8vw, 15px);
+    color: #006600;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .moon-bar-track {
+    height: 5px;
+    background: #0d200d;
+    border-radius: 3px;
+  }
+
+  .moon-bar-fill {
+    height: 100%;
+    background: #00cc00;
+    box-shadow: 0 0 5px #00cc00;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.07) 3px,
+      rgba(0,0,0,0.07) 4px
+    );
+  }
+</style>
+</head>
+<body>
+
+<div class="clock-shell">
+  <div class="scanlines"></div>
+
+  <div class="top-bar">
+    <div class="brand">DIGI-CHRON 8000</div>
+    <div class="led-row">
+      <div class="led on"></div>
+      <div class="led" id="led2"></div>
+      <div class="led on"></div>
+    </div>
+  </div>
+
+  <div class="display-panel">
+    <div class="time-row">
+      <span class="seg-time" id="hours">12</span>
+      <span class="colon">:</span>
+      <span class="seg-time" id="minutes">00</span>
+      <span class="colon colon2">:</span>
+      <span class="seg-time" id="seconds">00</span>
+      <span class="ampm" id="ampm">AM</span>
+    </div>
+    <div class="date-row">
+      <span class="day-text" id="dayname">MON</span>
+      <span class="date-text" id="datestr">JAN 01  2025</span>
+    </div>
+  </div>
+
+  <div class="moon-panel">
+    <svg class="moon-icon" id="moonSvg" viewBox="0 0 44 44"></svg>
+    <div class="moon-info">
+      <div class="moon-phase-name" id="phaseName">FIRST QUARTER</div>
+      <div class="moon-detail" id="phaseDetail">ILLUMINATION: 50%</div>
+      <div class="moon-bar-track">
+        <div class="moon-bar-fill" id="moonBar" style="width:50%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DAYS   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function getMoonPhase(date) {
+    const known = new Date(2000, 0, 6, 18, 14, 0);
+    const diff  = (date - known) / (1000 * 60 * 60 * 24);
+    const cycle = 29.53058867;
+    const age   = ((diff % cycle) + cycle) % cycle;
+    const illum = Math.round((1 - Math.cos((age / cycle) * 2 * Math.PI)) / 2 * 100);
+
+    let name;
+    if      (age < 1.85)  name = 'NEW MOON';
+    else if (age < 7.38)  name = 'WAXING CRESCENT';
+    else if (age < 9.22)  name = 'FIRST QUARTER';
+    else if (age < 14.77) name = 'WAXING GIBBOUS';
+    else if (age < 16.61) name = 'FULL MOON';
+    else if (age < 22.15) name = 'WANING GIBBOUS';
+    else if (age < 23.99) name = 'LAST QUARTER';
+    else                  name = 'WANING CRESCENT';
+
+    return { name, illum: Math.max(1, illum), age };
+  }
+
+  function drawMoon(svgEl, age) {
+    const cycle = 29.53058867;
+    const phase = age / cycle;
+    const cx = 22, cy = 22, r = 18;
+    const darkFill  = '#0d1f0d';
+    const lightFill = '#00cc00';
+
+    if (phase < 0.02 || phase > 0.98) {
+      svgEl.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${darkFill}" stroke="#1a3a1a" stroke-width="1"/>`;
+      return;
+    }
+    if (phase > 0.48 && phase < 0.52) {
+      svgEl.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${lightFill}" stroke="#00cc00" stroke-width="0.5"/>`;
+      return;
+    }
+
+    const sweep1 = phase < 0.5 ? 1 : 0;
+    const sweep2 = phase < 0.5 ? 0 : 1;
+    const ellX   = Math.abs(Math.cos(phase * Math.PI * 2)) * r;
+
+    svgEl.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${darkFill}" stroke="#1a3a1a" stroke-width="1"/>
+      <clipPath id="mc"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>
+      <path clip-path="url(#mc)"
+        d="M ${cx} ${cy - r}
+           A ${r} ${r} 0 0 ${sweep1} ${cx} ${cy + r}
+           A ${ellX} ${r} 0 0 ${sweep2} ${cx} ${cy - r} Z"
+        fill="${lightFill}"/>
+    `;
+  }
+
+  function tick() {
+    const now  = new Date();
+    let h      = now.getHours();
+    const m    = now.getMinutes();
+    const s    = now.getSeconds();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+
+    document.getElementById('hours').textContent   = pad(h);
+    document.getElementById('minutes').textContent = pad(m);
+    document.getElementById('seconds').textContent = pad(s);
+    document.getElementById('ampm').textContent    = ampm;
+
+    const day = DAYS[now.getDay()];
+    const mon = MONTHS[now.getMonth()];
+    const dt  = pad(now.getDate());
+    const yr  = now.getFullYear();
+    document.getElementById('dayname').textContent = day;
+    document.getElementById('datestr').textContent = `${mon} ${dt}  ${yr}`;
+
+    const moon = getMoonPhase(now);
+    document.getElementById('phaseName').textContent   = moon.name;
+    document.getElementById('phaseDetail').textContent = `ILLUMINATION: ${moon.illum}%`;
+    document.getElementById('moonBar').style.width     = moon.illum + '%';
+    drawMoon(document.getElementById('moonSvg'), moon.age);
+
+    document.getElementById('led2').classList.toggle('on', s % 2 === 0);
+  }
+
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
