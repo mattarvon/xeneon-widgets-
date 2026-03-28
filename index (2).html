@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIGI-CHRON 8000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #0d0d0d;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    overflow: hidden;
+  }
+
+  .clock-shell {
+    background: #141414;
+    border: 1.5px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 14px 20px 12px;
+    width: 98vw;
+    height: 96vh;
+    max-width: 860px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .brand { font-size: 9px; letter-spacing: 4px; color: #333; text-transform: uppercase; }
+
+  .led-row { display: flex; gap: 5px; }
+  .led { width: 7px; height: 7px; border-radius: 50%; background: #001a00; }
+  .led.on { background: #00e000; box-shadow: 0 0 5px #00e000; }
+
+  /* ---- TIME PANEL ---- */
+  .time-panel {
+    background: #070f07;
+    border: 1px solid #1a3a1a;
+    border-radius: 6px;
+    padding: 10px 20px 8px;
+    flex-shrink: 0;
+  }
+
+  .time-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .seg-time {
+    font-size: clamp(52px, 12vw, 96px);
+    line-height: 1;
+    letter-spacing: -1px;
+    color: #00e800;
+    text-shadow: 0 0 10px #00e000, 0 0 3px #00ff00;
+  }
+
+  .colon {
+    font-size: clamp(52px, 12vw, 96px);
+    line-height: 1;
+    color: #00e800;
+    text-shadow: 0 0 10px #00e000;
+    margin: 0 2px;
+    animation: blink 1s step-end infinite;
+  }
+  .colon2 { animation-delay: 0.5s; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.08} }
+
+  .ampm {
+    font-size: clamp(16px, 2.8vw, 26px);
+    color: #00e000;
+    text-shadow: 0 0 6px #00e000;
+    margin-left: 8px;
+    align-self: flex-end;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+
+  .date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #162816;
+  }
+
+  .day-text, .date-text {
+    font-size: clamp(13px, 2.4vw, 20px);
+    color: #00aa00;
+    text-shadow: 0 0 5px #009900;
+    letter-spacing: 3px;
+  }
+
+  /* ---- BOTTOM ROW ---- */
+  .bottom-row {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ---- WEATHER PANEL ---- */
+  .weather-panel {
+    background: #070f07;
+    border: 1px solid #1a3a1a;
+    border-radius: 6px;
+    padding: 10px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .panel-label {
+    font-size: 9px;
+    color: #1e4a1e;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+
+  .wx-temp {
+    font-size: clamp(36px, 7vw, 60px);
+    line-height: 1;
+    color: #00e800;
+    text-shadow: 0 0 10px #00e000, 0 0 3px #00ff00;
+    letter-spacing: -1px;
+  }
+
+  .wx-temp-unit {
+    font-size: clamp(18px, 3vw, 26px);
+    color: #00aa00;
+    text-shadow: 0 0 5px #009900;
+    margin-left: 2px;
+  }
+
+  .wx-feels {
+    font-size: clamp(10px, 1.8vw, 14px);
+    color: #006600;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .wx-divider { height: 1px; background: #162816; margin: 6px 0; flex-shrink: 0; }
+
+  .wx-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .wx-item { display: flex; flex-direction: column; gap: 1px; }
+  .wx-key { font-size: 9px; color: #1e4a1e; letter-spacing: 2px; }
+  .wx-val { font-size: clamp(11px, 2vw, 15px); color: #00aa00; letter-spacing: 1px; text-shadow: 0 0 4px #009900; }
+
+  .wx-condition {
+    font-size: clamp(10px, 1.8vw, 13px);
+    color: #00880  0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .wx-status {
+    font-size: 9px;
+    color: #1a3a1a;
+    letter-spacing: 2px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ---- MOON PANEL ---- */
+  .moon-panel {
+    background: #070f07;
+    border: 1px solid #1a3a1a;
+    border-radius: 6px;
+    padding: 10px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .moon-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+  }
+
+  .moon-icon { flex-shrink: 0; }
+
+  .moon-details { flex: 1; min-width: 0; }
+
+  .moon-phase-name {
+    font-size: clamp(12px, 2.2vw, 18px);
+    color: #00cc00;
+    text-shadow: 0 0 5px #00bb00;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .moon-illum {
+    font-size: clamp(10px, 1.8vw, 14px);
+    color: #006600;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .moon-bar-track {
+    height: 5px;
+    background: #0d200d;
+    border-radius: 3px;
+  }
+
+  .moon-bar-fill {
+    height: 100%;
+    background: #00cc00;
+    box-shadow: 0 0 5px #00cc00;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .scanlines {
+    position: absolute; inset: 0; border-radius: 10px; pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom, transparent 0px, transparent 3px,
+      rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+    );
+  }
+</style>
+</head>
+<body>
+
+<div class="clock-shell">
+  <div class="scanlines"></div>
+
+  <div class="top-bar">
+    <div class="brand">DIGI-CHRON 8000</div>
+    <div class="led-row">
+      <div class="led on"></div>
+      <div class="led" id="led2"></div>
+      <div class="led on"></div>
+    </div>
+  </div>
+
+  <!-- TIME -->
+  <div class="time-panel">
+    <div class="time-row">
+      <span class="seg-time" id="hours">12</span>
+      <span class="colon">:</span>
+      <span class="seg-time" id="minutes">00</span>
+      <span class="colon colon2">:</span>
+      <span class="seg-time" id="seconds">00</span>
+      <span class="ampm" id="ampm">AM</span>
+    </div>
+    <div class="date-row">
+      <span class="day-text" id="dayname">MON</span>
+      <span class="date-text" id="datestr">JAN 01  2025</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM: WEATHER + MOON -->
+  <div class="bottom-row">
+
+    <!-- WEATHER -->
+    <div class="weather-panel">
+      <div class="panel-label">LOCAL WEATHER &mdash; OLNEY, MD</div>
+
+      <div>
+        <span class="wx-temp" id="wxTemp">--</span><span class="wx-temp-unit">&deg;F</span>
+        <div class="wx-feels" id="wxFeels">FEELS LIKE --&deg;F</div>
+      </div>
+
+      <div class="wx-divider"></div>
+
+      <div class="wx-grid">
+        <div class="wx-item">
+          <span class="wx-key">HUMIDITY</span>
+          <span class="wx-val" id="wxHumid">--%</span>
+        </div>
+        <div class="wx-item">
+          <span class="wx-key">WIND</span>
+          <span class="wx-val" id="wxWind">-- MPH</span>
+        </div>
+        <div class="wx-item">
+          <span class="wx-key">PRECIP</span>
+          <span class="wx-val" id="wxPrecip">-- IN</span>
+        </div>
+        <div class="wx-item">
+          <span class="wx-key">CONDITION</span>
+          <span class="wx-val" id="wxCond">--</span>
+        </div>
+      </div>
+
+      <div class="wx-status" id="wxStatus">FETCHING...</div>
+    </div>
+
+    <!-- MOON -->
+    <div class="moon-panel">
+      <div class="panel-label">LUNAR PHASE</div>
+      <div class="moon-body">
+        <svg class="moon-icon" id="moonSvg" width="64" height="64" viewBox="0 0 44 44"></svg>
+        <div class="moon-details">
+          <div class="moon-phase-name" id="phaseName">--</div>
+          <div class="moon-illum" id="moonIllum">ILLUMINATION: --%</div>
+          <div class="moon-bar-track">
+            <div class="moon-bar-fill" id="moonBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const DAYS   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  /* ---- CLOCK ---- */
+  function tick() {
+    const now = new Date();
+    let h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+
+    document.getElementById('hours').textContent   = pad(h);
+    document.getElementById('minutes').textContent = pad(m);
+    document.getElementById('seconds').textContent = pad(s);
+    document.getElementById('ampm').textContent    = ampm;
+    document.getElementById('dayname').textContent = DAYS[now.getDay()];
+    document.getElementById('datestr').textContent =
+      MONTHS[now.getMonth()] + ' ' + pad(now.getDate()) + '  ' + now.getFullYear();
+    document.getElementById('led2').classList.toggle('on', s % 2 === 0);
+  }
+
+  /* ---- MOON ---- */
+  function getMoonPhase(date) {
+    const known = new Date(2000, 0, 6, 18, 14, 0);
+    const diff  = (date - known) / 86400000;
+    const cycle = 29.53058867;
+    const age   = ((diff % cycle) + cycle) % cycle;
+    const illum = Math.round((1 - Math.cos((age / cycle) * 2 * Math.PI)) / 2 * 100);
+    let name;
+    if      (age < 1.85)  name = 'NEW MOON';
+    else if (age < 7.38)  name = 'WAXING CRESCENT';
+    else if (age < 9.22)  name = 'FIRST QUARTER';
+    else if (age < 14.77) name = 'WAXING GIBBOUS';
+    else if (age < 16.61) name = 'FULL MOON';
+    else if (age < 22.15) name = 'WANING GIBBOUS';
+    else if (age < 23.99) name = 'LAST QUARTER';
+    else                  name = 'WANING CRESCENT';
+    return { name, illum: Math.max(1, illum), age };
+  }
+
+  function drawMoon(svgEl, age) {
+    const cycle = 29.53058867;
+    const phase = age / cycle;
+    const cx = 22, cy = 22, r = 18;
+    const dark = '#0d1f0d', light = '#00cc00';
+    if (phase < 0.02 || phase > 0.98) {
+      svgEl.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dark}" stroke="#1a3a1a" stroke-width="1"/>`;
+      return;
+    }
+    if (phase > 0.48 && phase < 0.52) {
+      svgEl.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${light}" stroke="#00cc00" stroke-width="0.5"/>`;
+      return;
+    }
+    const s1 = phase < 0.5 ? 1 : 0;
+    const s2 = phase < 0.5 ? 0 : 1;
+    const ex = Math.abs(Math.cos(phase * Math.PI * 2)) * r;
+    svgEl.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${dark}" stroke="#1a3a1a" stroke-width="1"/>
+      <clipPath id="mc"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>
+      <path clip-path="url(#mc)"
+        d="M ${cx} ${cy-r} A ${r} ${r} 0 0 ${s1} ${cx} ${cy+r} A ${ex} ${r} 0 0 ${s2} ${cx} ${cy-r} Z"
+        fill="${light}"/>`;
+  }
+
+  function updateMoon() {
+    const moon = getMoonPhase(new Date());
+    document.getElementById('phaseName').textContent  = moon.name;
+    document.getElementById('moonIllum').textContent  = 'ILLUMINATION: ' + moon.illum + '%';
+    document.getElementById('moonBar').style.width    = moon.illum + '%';
+    drawMoon(document.getElementById('moonSvg'), moon.age);
+  }
+
+  /* ---- WEATHER CODES ---- */
+  const WX_CODES = {
+    0:'CLEAR',1:'MAINLY CLR',2:'PARTLY CLD',3:'OVERCAST',
+    45:'FOG',48:'ICING FOG',
+    51:'LT DRIZZLE',53:'DRIZZLE',55:'HVY DRIZZLE',
+    61:'LT RAIN',63:'RAIN',65:'HVY RAIN',
+    71:'LT SNOW',73:'SNOW',75:'HVY SNOW',77:'SNOW GRAINS',
+    80:'LT SHOWERS',81:'SHOWERS',82:'HVY SHOWERS',
+    85:'SNOW SHWRS',86:'HVY SNOW SHWRS',
+    95:'T-STORM',96:'T-STORM HAIL',99:'HVY T-STORM'
+  };
+
+  function fetchWeather() {
+    const url = 'https://api.open-meteo.com/v1/forecast' +
+      '?latitude=39.1534&longitude=-77.0699' +
+      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation' +
+      '&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch' +
+      '&timezone=America%2FNew_York';
+
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const c = data.current;
+        document.getElementById('wxTemp').textContent   = Math.round(c.temperature_2m);
+        document.getElementById('wxFeels').textContent  = 'FEELS LIKE ' + Math.round(c.apparent_temperature) + '\u00b0F';
+        document.getElementById('wxHumid').textContent  = Math.round(c.relative_humidity_2m) + '%';
+        document.getElementById('wxWind').textContent   = Math.round(c.wind_speed_10m) + ' MPH';
+        document.getElementById('wxPrecip').textContent = c.precipitation.toFixed(2) + ' IN';
+        document.getElementById('wxCond').textContent   = WX_CODES[c.weather_code] || 'CODE ' + c.weather_code;
+        document.getElementById('wxStatus').textContent = 'UPDATED ' + new Date().toTimeString().slice(0,8);
+      })
+      .catch(() => {
+        document.getElementById('wxStatus').textContent = 'WEATHER UNAVAILABLE';
+      });
+  }
+
+  /* ---- INIT ---- */
+  tick();
+  updateMoon();
+  fetchWeather();
+  setInterval(tick, 1000);
+  setInterval(updateMoon, 60000);
+  setInterval(fetchWeather, 900000); // refresh every 15 min
+</script>
+
+</body>
+</html>
