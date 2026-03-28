@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEISMIC MONITOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #0d0d0d; width: 100%; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    overflow: hidden;
+  }
+  .shell {
+    background: #0e0e0e; border: 1.5px solid #252520;
+    border-radius: 10px; padding: 11px 14px 10px;
+    width: 98vw; height: 96vh; max-width: 860px;
+    position: relative; display: flex; flex-direction: column; gap: 7px;
+  }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .title { font-size: 12px; letter-spacing: 3px; color: #444; text-transform: uppercase; }
+  .dots { display: flex; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #1a1a00; }
+  .dot.on  { background: #aacc00; box-shadow: 0 0 6px #aacc00; animation: pulse 2s infinite; }
+  .dot.red { background: #cc2200; box-shadow: 0 0 6px #cc2200; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* WAVEFORM */
+  .wave-panel {
+    background: #060608; border: 1px solid #1a1a28;
+    border-radius: 6px; padding: 8px 10px 6px; flex-shrink: 0;
+  }
+  .wave-label {
+    font-size: 11px; color: #2a2a44; letter-spacing: 3px;
+    margin-bottom: 4px; display: flex; justify-content: space-between;
+  }
+  canvas#waveCanvas { width: 100%; height: 58px; display: block; }
+  .mag-flash {
+    font-size: 13px; color: #ff4400; letter-spacing: 2px;
+    text-align: right; min-height: 16px; margin-top: 2px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .mag-flash.show { opacity: 1; }
+
+  /* DATA ROW */
+  .data-row { display: flex; gap: 7px; flex: 1; min-height: 0; }
+
+  /* PANEL SHARED */
+  .panel-hdr {
+    font-size: 12px; color: #2a2a44; letter-spacing: 3px;
+    margin-bottom: 8px; flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .hdr-right { font-size: 12px; color: #4444aa; }
+  .divider { height: 1px; background: #111120; margin: 6px 0; flex-shrink: 0; }
+
+  /* SEISMIC PANEL */
+  .seismic-panel {
+    background: #060608; border: 1px solid #1a1a28;
+    border-radius: 6px; padding: 10px 13px;
+    flex: 1.1; display: flex; flex-direction: column; min-width: 0;
+  }
+
+  .big-mag-row { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; margin-bottom: 4px; }
+  .big-mag {
+    font-size: clamp(54px, 11vw, 86px); line-height: 1; letter-spacing: -2px;
+    color: #4466ff;
+    text-shadow: 0 0 14px rgba(60,80,255,0.5), 0 0 4px #6688ff;
+    transition: color 0.5s, text-shadow 0.5s;
+  }
+  .big-mag.m3 { color: #44aaff; text-shadow: 0 0 14px rgba(60,160,255,0.5); }
+  .big-mag.m4 { color: #aacc00; text-shadow: 0 0 14px rgba(160,200,0,0.5); }
+  .big-mag.m5 { color: #ffaa00; text-shadow: 0 0 14px rgba(255,160,0,0.5); }
+  .big-mag.m6 { color: #ff4400; text-shadow: 0 0 14px rgba(255,60,0,0.6); animation: flashred 0.8s step-end infinite; }
+  @keyframes flashred { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .mag-meta { display: flex; flex-direction: column; gap: 3px; }
+  .mag-type   { font-size: 14px; color: #3333aa; letter-spacing: 2px; }
+  .mag-source { font-size: 12px; color: #222244; letter-spacing: 2px; }
+
+  .quake-place {
+    font-size: clamp(13px, 2.4vw, 18px); color: #5566cc;
+    letter-spacing: 1px; line-height: 1.3; margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(80,100,200,0.3); flex-shrink: 0;
+  }
+
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px 10px; flex-shrink: 0;
+  }
+  .stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .stat-key { font-size: 12px; color: #222244; letter-spacing: 2px; }
+  .stat-val { font-size: clamp(14px, 2.6vw, 20px); color: #5566cc; letter-spacing: 1px; }
+  .stat-val.alert-green  { color: #44cc44; }
+  .stat-val.alert-yellow { color: #cccc00; }
+  .stat-val.alert-orange { color: #cc7700; }
+  .stat-val.alert-red    { color: #cc2200; }
+
+  .recent-label { font-size: 12px; color: #222244; letter-spacing: 3px; margin: 6px 0 4px; flex-shrink: 0; }
+  .recent-list  { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow: hidden; }
+  .recent-item {
+    display: flex; gap: 8px; align-items: center;
+    padding: 4px 6px; border-radius: 3px;
+    border: 1px solid #111128; background: #070710;
+  }
+  .ri-mag  { font-size: 14px; font-weight: bold; min-width: 34px; text-align: center; }
+  .ri-place{ font-size: 12px; color: #333366; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .ri-time { font-size: 11px; color: #222244; white-space: nowrap; }
+
+  .m-blue  { color: #4466ff; } .m-cyan  { color: #44aaff; }
+  .m-green { color: #44cc44; } .m-amber { color: #aacc00; }
+  .m-orange{ color: #ffaa00; } .m-red   { color: #ff4400; }
+
+  /* AIR QUALITY PANEL */
+  .aq-panel {
+    background: #060a06; border: 1px solid #1a281a;
+    border-radius: 6px; padding: 10px 13px;
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+  }
+
+  .aqi-big-row { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; margin-bottom: 4px; }
+  .aqi-big {
+    font-size: clamp(54px, 11vw, 86px); line-height: 1; letter-spacing: -2px;
+    color: #00cc44;
+    text-shadow: 0 0 14px rgba(0,200,60,0.45), 0 0 4px #00ff55;
+    transition: color 0.8s, text-shadow 0.8s;
+  }
+  .aqi-big.mod  { color: #cccc00; text-shadow: 0 0 14px rgba(200,200,0,0.5); }
+  .aqi-big.usg  { color: #cc7700; text-shadow: 0 0 14px rgba(200,120,0,0.5); }
+  .aqi-big.unhl { color: #cc2200; text-shadow: 0 0 14px rgba(200,30,0,0.6); }
+  .aqi-big.vunhl{ color: #880055; text-shadow: 0 0 14px rgba(140,0,80,0.6); animation: flashred 1s step-end infinite; }
+
+  .aqi-meta { display: flex; flex-direction: column; gap: 3px; }
+  .aqi-label  { font-size: 14px; color: #00aa33; letter-spacing: 2px; }
+  .aqi-source { font-size: 12px; color: #1a3a1a; letter-spacing: 2px; }
+
+  .aqi-cat {
+    font-size: clamp(15px, 2.8vw, 22px); color: #00cc44; letter-spacing: 2px;
+    text-shadow: 0 0 5px rgba(0,200,60,0.3); margin-bottom: 6px; flex-shrink: 0;
+  }
+
+  .aqi-bar-track {
+    height: 8px; border-radius: 4px; position: relative; flex-shrink: 0;
+    background: linear-gradient(to right, #00cc44 0%, #cccc00 30%, #cc7700 50%, #cc2200 70%, #880055 85%, #550022 100%);
+    margin-bottom: 2px;
+  }
+  .aqi-needle {
+    position: absolute; top: -4px; width: 3px; height: 16px;
+    background: #fff; border-radius: 1px;
+    transition: left 1s ease; box-shadow: 0 0 5px rgba(255,255,255,0.7);
+    transform: translateX(-50%);
+  }
+  .aqi-bar-marks { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .aqi-mark { font-size: 10px; color: #1a3a1a; }
+
+  .poll-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5px 10px; flex: 1; align-content: start;
+  }
+  .poll-item { display: flex; flex-direction: column; gap: 2px; }
+  .poll-key  { font-size: 12px; color: #1a3a1a; letter-spacing: 2px; }
+  .poll-val  { font-size: clamp(13px, 2.4vw, 18px); color: #00aa33; letter-spacing: 1px; }
+  .poll-bar-track { height: 4px; background: #0a1a0a; border-radius: 2px; margin-top: 1px; }
+  .poll-bar-fill  { height: 100%; border-radius: 2px; background: #00cc44; transition: width 0.8s ease; }
+
+  .aq-status { font-size: 11px; color: #1a3a1a; letter-spacing: 2px; margin-top: 4px; flex-shrink: 0; }
+
+  .scanlines {
+    position: absolute; inset: 0; border-radius: 10px; pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom, transparent 0px, transparent 3px,
+      rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+    );
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="scanlines"></div>
+
+  <div class="top-bar">
+    <div class="title">PLANETARY MONITOR &mdash; OLNEY, MD</div>
+    <div class="dots">
+      <div class="dot" id="dotUsgs"></div>
+      <div class="dot" id="dotAq"></div>
+      <div class="dot on"></div>
+    </div>
+  </div>
+
+  <div class="wave-panel">
+    <div class="wave-label">
+      <span>SEISMOGRAPH &mdash; SIMULATED LIVE WAVEFORM</span>
+      <span id="waveInfo">MONITORING</span>
+    </div>
+    <canvas id="waveCanvas" height="58"></canvas>
+    <div class="mag-flash" id="magFlash">EVENT DETECTED</div>
+  </div>
+
+  <div class="data-row">
+
+    <div class="seismic-panel">
+      <div class="panel-hdr">
+        <span>USGS &mdash; PAST HOUR</span>
+        <span class="hdr-right" id="quakeCount">-- EVENTS</span>
+      </div>
+
+      <div class="big-mag-row">
+        <span class="big-mag" id="bigMag">--</span>
+        <div class="mag-meta">
+          <span class="mag-type" id="magType">-- MAG</span>
+          <span class="mag-source">USGS / NEIC</span>
+        </div>
+      </div>
+
+      <div class="quake-place" id="quakePlace">AWAITING DATA...</div>
+      <div class="divider"></div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-key">DEPTH</span>
+          <span class="stat-val" id="quakeDepth">-- KM</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">FELT</span>
+          <span class="stat-val" id="quakeFelt">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">ALERT</span>
+          <span class="stat-val" id="quakeAlert">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">TSUNAMI</span>
+          <span class="stat-val" id="quakeTsunami">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">SIG</span>
+          <span class="stat-val" id="quakeSig">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">UPDATED</span>
+          <span class="stat-val" id="quakeTime">--</span>
+        </div>
+      </div>
+
+      <div class="recent-label">RECENT EVENTS</div>
+      <div class="recent-list" id="recentList"></div>
+    </div>
+
+    <div class="aq-panel">
+      <div class="panel-hdr">
+        <span>AIR QUALITY &mdash; OLNEY MD</span>
+      </div>
+
+      <div class="aqi-big-row">
+        <span class="aqi-big" id="aqiBig">--</span>
+        <div class="aqi-meta">
+          <span class="aqi-label">US AQI</span>
+          <span class="aqi-source">EPA STANDARD</span>
+        </div>
+      </div>
+
+      <div class="aqi-cat" id="aqiCat">--</div>
+
+      <div class="aqi-bar-track">
+        <div class="aqi-needle" id="aqiNeedle" style="left:0%"></div>
+      </div>
+      <div class="aqi-bar-marks">
+        <span class="aqi-mark">0</span>
+        <span class="aqi-mark">50</span>
+        <span class="aqi-mark">100</span>
+        <span class="aqi-mark">150</span>
+        <span class="aqi-mark">200</span>
+        <span class="aqi-mark">300+</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="poll-grid">
+        <div class="poll-item">
+          <span class="poll-key">PM2.5</span>
+          <span class="poll-val" id="pm25">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="pm25bar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">PM10</span>
+          <span class="poll-val" id="pm10">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="pm10bar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">OZONE O3</span>
+          <span class="poll-val" id="o3">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="o3bar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">NO2</span>
+          <span class="poll-val" id="no2">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="no2bar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">SO2</span>
+          <span class="poll-val" id="so2">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="so2bar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">CO</span>
+          <span class="poll-val" id="co">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="cobar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">UV INDEX</span>
+          <span class="poll-val" id="uvi">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="uvibar" style="width:0%"></div></div>
+        </div>
+        <div class="poll-item">
+          <span class="poll-key">DUST</span>
+          <span class="poll-val" id="dust">--</span>
+          <div class="poll-bar-track"><div class="poll-bar-fill" id="dustbar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="aq-status" id="aqStatus">FETCHING AIR QUALITY...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+let wavePoints = [];
+let eventAmplitude = 0, eventDecay = 0;
+const WAVE_N = 300;
+for (let i = 0; i < WAVE_N; i++) wavePoints.push(0);
+
+function triggerEvent(mag) {
+  eventAmplitude = Math.min(24, mag * mag * 0.85);
+  eventDecay = 0;
+  const f = document.getElementById('magFlash');
+  f.textContent = 'M' + mag.toFixed(1) + ' EVENT DETECTED';
+  f.classList.add('show');
+  setTimeout(() => f.classList.remove('show'), 3500);
+}
+
+function drawWave() {
+  const W = canvas.offsetWidth; const H = 58;
+  canvas.width = W; canvas.height = H;
+  const mid = H / 2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#0d0d1a'; ctx.lineWidth = 0.5;
+  for (let y = 0; y < H; y += 14) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  ctx.strokeStyle = '#111128'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(0,mid); ctx.lineTo(W,mid); ctx.stroke();
+
+  let amp = 1.2;
+  if (eventDecay < 1) { eventDecay += 0.003; amp += eventAmplitude * Math.pow(1 - eventDecay, 2); }
+  wavePoints.push((Math.random() - 0.5) * 2 * amp);
+  if (wavePoints.length > WAVE_N) wavePoints.shift();
+
+  const step = W / WAVE_N;
+  ctx.beginPath(); ctx.strokeStyle = '#3344cc'; ctx.lineWidth = 1.2;
+  wavePoints.forEach((v,i) => { const x=i*step, y=mid+v*(H*0.38); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(60,80,255,0.12)'; ctx.lineWidth = 4;
+  wavePoints.forEach((v,i) => { const x=i*step, y=mid+v*(H*0.38); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+}
+setInterval(drawWave, 50);
+
+function magClass(m) {
+  if (m<2) return 'm-blue'; if (m<3) return 'm-cyan'; if (m<4) return 'm-green';
+  if (m<5) return 'm-amber'; if (m<6) return 'm-orange'; return 'm-red';
+}
+function bigMagCls(m) {
+  if (m<3) return ''; if (m<4) return 'm3'; if (m<5) return 'm4'; if (m<6) return 'm5'; return 'm6';
+}
+function timeAgo(ms) {
+  const s = Math.round((Date.now()-ms)/1000);
+  if (s<60) return s+'s ago'; if (s<3600) return Math.floor(s/60)+'m ago'; return Math.floor(s/3600)+'h ago';
+}
+
+function fetchQuakes() {
+  fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson')
+    .then(r=>r.json()).then(data=>{
+      const F = data.features;
+      document.getElementById('quakeCount').textContent = F.length + ' EVENTS';
+      document.getElementById('dotUsgs').className = 'dot on';
+      if (!F.length) { document.getElementById('quakePlace').textContent = 'NO EVENTS THIS HOUR'; return; }
+
+      const top = [...F].sort((a,b)=>(b.properties.sig||0)-(a.properties.sig||0))[0];
+      const p = top.properties, c = top.geometry.coordinates, mag = p.mag||0;
+
+      document.getElementById('bigMag').textContent   = mag.toFixed(1);
+      document.getElementById('bigMag').className     = 'big-mag ' + bigMagCls(mag);
+      document.getElementById('magType').textContent  = (p.magType||'ml').toUpperCase() + ' MAG';
+      document.getElementById('quakePlace').textContent = p.place || 'UNKNOWN';
+      document.getElementById('quakeDepth').textContent = (c[2]||0).toFixed(1)+' KM';
+      document.getElementById('quakeFelt').textContent  = p.felt ? p.felt+' RPT' : 'NONE';
+      document.getElementById('quakeSig').textContent   = p.sig || '0';
+      document.getElementById('quakeTime').textContent  = timeAgo(p.time);
+      document.getElementById('quakeTsunami').textContent = p.tsunami ? 'WARNING' : 'NONE';
+      const al = document.getElementById('quakeAlert');
+      al.textContent = (p.alert||'GREEN').toUpperCase();
+      al.className   = 'stat-val alert-' + (p.alert||'green');
+      if (mag >= 2.5) triggerEvent(mag);
+
+      const recent = [...F].sort((a,b)=>b.properties.time-a.properties.time).slice(0,8);
+      const list = document.getElementById('recentList');
+      list.innerHTML = '';
+      recent.forEach(f=>{
+        const q = f.properties, m = (q.mag||0).toFixed(1);
+        const d = document.createElement('div');
+        d.className = 'recent-item';
+        d.innerHTML = `<span class="ri-mag ${magClass(q.mag||0)}">M${m}</span><span class="ri-place">${q.place||'?'}</span><span class="ri-time">${timeAgo(q.time)}</span>`;
+        list.appendChild(d);
+      });
+    }).catch(()=>{ document.getElementById('dotUsgs').className='dot red'; });
+}
+
+const AQI_CATS = [[50,'GOOD',''],[ 100,'MODERATE','mod'],[150,'UNHEALTHY / SENSITIVE','usg'],[200,'UNHEALTHY','unhl'],[300,'VERY UNHEALTHY','vunhl'],[500,'HAZARDOUS','vunhl']];
+function aqiCat(v) { for (const [t,l,c] of AQI_CATS) if (v<=t) return {l,c}; return {l:'HAZARDOUS',c:'vunhl'}; }
+function setBar(id, v, max) { document.getElementById(id).style.width = Math.min(100,(v/max)*100).toFixed(1)+'%'; }
+
+function fetchAQ() {
+  fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.1534&longitude=-77.0699&current=pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,us_aqi,uv_index,dust&timezone=America%2FNew_York')
+    .then(r=>r.json()).then(d=>{
+      const c = d.current, aqi = Math.round(c.us_aqi);
+      const {l,c:cls} = aqiCat(aqi);
+      document.getElementById('aqiBig').textContent = aqi;
+      document.getElementById('aqiBig').className   = 'aqi-big ' + cls;
+      document.getElementById('aqiCat').textContent = l;
+      document.getElementById('aqiNeedle').style.left = Math.min(100,(aqi/300)*100).toFixed(1)+'%';
+
+      document.getElementById('pm25').textContent = c.pm2_5.toFixed(1)+' μg';
+      document.getElementById('pm10').textContent = c.pm10.toFixed(1)+' μg';
+      document.getElementById('o3').textContent   = c.ozone.toFixed(1)+' μg';
+      document.getElementById('no2').textContent  = c.nitrogen_dioxide.toFixed(1)+' μg';
+      document.getElementById('so2').textContent  = c.sulphur_dioxide.toFixed(1)+' μg';
+      document.getElementById('co').textContent   = (c.carbon_monoxide/1000).toFixed(2)+' mg';
+      document.getElementById('uvi').textContent  = c.uv_index.toFixed(1);
+      document.getElementById('dust').textContent = c.dust.toFixed(1)+' μg';
+
+      setBar('pm25bar', c.pm2_5, 75);
+      setBar('pm10bar', c.pm10, 150);
+      setBar('o3bar',   c.ozone, 240);
+      setBar('no2bar',  c.nitrogen_dioxide, 200);
+      setBar('so2bar',  c.sulphur_dioxide, 350);
+      setBar('cobar',   c.carbon_monoxide, 15000);
+      setBar('uvibar',  c.uv_index, 11);
+      setBar('dustbar', c.dust, 200);
+
+      document.getElementById('dotAq').className  = 'dot on';
+      document.getElementById('aqStatus').textContent = 'UPDATED ' + new Date().toTimeString().slice(0,8);
+    }).catch(()=>{ document.getElementById('dotAq').className='dot red'; });
+}
+
+fetchQuakes(); fetchAQ();
+setInterval(fetchQuakes, 60000);
+setInterval(fetchAQ, 900000);
+</script>
+</body>
+</html>
